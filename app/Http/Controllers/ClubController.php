@@ -97,6 +97,32 @@ class ClubController extends Controller
         return json_encode(
             array('status'=>'success')
         );
-       
+    }
+
+    public function getMembers($clubId){
+        $members = DB::table('users')
+        ->whereIn('id', function($query) use($clubId){
+            $query->select('member_id')
+            ->from('club_members')
+            ->where('club_id', $clubId)
+            ->where(function($query){
+               $query-> where('role', 'admin')
+                ->orWhere('role', 'participant');
+            });
+        })
+        ->select('id','name','phone','image')
+        ->get();
+        
+        if (count($members) >= 2) { 
+            return json_encode(array(
+                'status'=>'success',
+                'members'=>$members
+            ));
+        }
+        else{
+            return json_encode(array(
+                'status'=>'no_members',
+            ));
+        }
     }
 }
