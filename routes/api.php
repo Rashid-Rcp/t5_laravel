@@ -24,7 +24,8 @@ Route::post('/login',[UserController::class,'loginUser']);
 Route::get('/user/club/{userId}',[ClubController::class,'userClub']);
 Route::post('/club/create',[ClubController::class,'create']);
 Route::post('/club/members',[ClubController::class,'addMembers']);
-Route::get('/club/members/{clubId}',[ClubController::class,'getMembers']);
+Route::get('/club/members/{clubName}',[ClubController::class,'getMembers']);
+Route::get('/user_clubs/{userId}',[ClubController::class,'getUserClubs']);
 
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
