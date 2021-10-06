@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TestController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ClubController;
+use App\Http\Controllers\DiscussionController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -26,6 +27,7 @@ Route::post('/club/create',[ClubController::class,'create']);
 Route::post('/club/members',[ClubController::class,'addMembers']);
 Route::get('/club/members/{clubName}',[ClubController::class,'getMembers']);
 Route::get('/user_clubs/{userId}',[ClubController::class,'getUserClubs']);
+Route::post('/discussion/create',[DiscussionController::class,'create']);
 
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
