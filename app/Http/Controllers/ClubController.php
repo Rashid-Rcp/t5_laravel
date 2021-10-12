@@ -15,9 +15,10 @@ class ClubController extends Controller
        $result = array(
            'status'=>'not_found'
        );
-       $club =  DB::table('club')
-          ->where('creator_id',$userId)
-          ->select('id')
+       $club =  DB::table('club_members')
+          ->where('member_id',$userId)
+          ->where('role','admin')
+          ->select('club_id')
           ->first();
         if($club){
             $result = array(

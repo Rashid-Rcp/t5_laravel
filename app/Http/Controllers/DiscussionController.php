@@ -68,7 +68,146 @@ class DiscussionController extends Controller
                 'status'=>'error'
             ));
         }
+    }
 
-    
+    public function getUserDiscussion($userId){
+       
+        $votes = DB::table('discussion_vote')
+        ->select('discussion_id',DB::raw('COUNT(id) AS votes'))
+        ->groupBy('discussion_id');
+
+        $comments = DB::table('discussion_comment')
+        ->select('discussion_id',DB::raw('COUNT(id) AS comments'))
+        ->groupBy('discussion_id');
+
+        $answers = DB::table('discussion_answer')
+        ->select('discussion_id',DB::raw('COUNT(id) AS answers'))
+        ->groupBy('discussion_id');
+
+
+        // $isVoted = DB::table('discussion_vote')
+        // ->select('discussion_id',DB::raw('COUNT(id) AS isVoted'))
+        // ->where('user_id',$userId)->groupBy('discussion_id');
+       
+        $discussions = DB::table('discussion')
+        ->join('club','discussion.club_id','=','club.id')
+        ->leftJoinSub($votes,'votes',function($join){
+            $join->on('votes.discussion_id','=','discussion.id');
+          })
+          ->leftJoinSub($answers,'answers',function($join){
+            $join->on('answers.discussion_id','=','discussion.id');
+          })
+          ->leftJoinSub($comments,'comments',function($join){
+            $join->on('comments.discussion_id','=','discussion.id');
+          })
+          
+        ->whereIn('discussion.club_id', function($query) use($userId){
+            $query->select('club_id')
+            ->from('club_members')
+            ->where('member_id',$userId)
+            ->where('role','admin');
+        })
+        ->where('discussion.status','open')
+        ->select('discussion.id','discussion.topic','discussion.vote','discussion.comment','discussion.status','discussion.date','votes.votes','comments.comments','answers.answers','club.name as club')
+        ->orderBy('discussion.date' ,'desc')
+        ->get();
+        $now = Carbon::now();
+        foreach($discussions as $key=>$discussion){
+            $date = new Carbon($discussion->date);
+           
+            $time = $date->diffInYears($now);
+            $unit = $time === 1?'year':'years';
+            if(!$time){
+                $time = $date->diffInMonths($now);
+                $unit = $time === 1?'month':'months';
+            }
+            if(!$time){
+                $time = $date->diffInDays($now);
+                $unit = $time === 1?'day':'days';
+            }
+            if(!$time){
+                $time = $date->diffInHours($now);
+                $unit = $time === 1?'hour':'hours';
+            }
+            if(!$time){
+                $time = $date->diffInMinutes($now);
+                $unit = $time === 1?'minute':'minutes';
+            }
+            if(!$time){
+                $time = 'Just now';
+                $unit = '';
+            }
+            if($unit){
+                $unit .= ' ago';
+            }
+            
+            $discussions[$key]->time = $time .' '.$unit;
+        }
+        if($discussions){
+            return json_encode(array(
+                'status'=>'success',
+                'discussions'=>$discussions
+            ));
+        }
+        else{
+            return json_encode(array(
+                'status'=>'error',
+            ));
+        } 
+    }
+
+    public function getDiscussionManage($discussionId){
+       
+
+        $discussion = DB::table('discussion')
+        ->join('club','club.id','=','discussion.club_id')
+        ->join('users','users.id','=','discussion.creator_id')
+        ->select('discussion.*','club.name as club','users.name as creator')
+        ->where('discussion.id',$discussionId)
+        ->get();
+        $participant_ids = json_decode($discussion[0]->participants);
+        $participants = DB::table('users')
+        ->whereIn('id',$participant_ids)
+        ->select('id','image','name')->get();
+        $votes = [];
+        $total_votes = 0;
+        if($discussion[0]->vote === 'true'){
+            foreach($participant_ids as $participant){
+                $p_votes = DB::table('discussion_vote')
+                ->join('users','users.id','=','discussion_vote.participant_id')
+                ->where('discussion_vote.participant_id',$participant)
+                ->select('users.id as user_id' ,'users.image' ,'users.name', DB::raw('COUNT(discussion_vote.id) AS votes'))
+                ->groupBy('discussion_vote.participant_id','users.id','users.image','users.name')->get();
+                array_push($votes,array($participant=>$p_votes));
+            }
+            $t_votes = DB::table('discussion_vote')
+            ->where('discussion_id',$discussionId)
+            ->select(DB::raw('COUNT(id) AS total_votes'))
+            ->groupBy('discussion_id')->get();
+           $total_votes =  $t_votes[0]->total_votes;
+
+        }
+        $comments =[];
+        $total_comments = 0;
+        if($discussion[0]->comment === 'true'){
+            $comments = DB::table('discussion_comment')
+            ->join('users','discussion_comment.user_id','=','users.id')
+            ->where('discussion_id',$discussionId)
+            ->select('users.id as user_id','users.image as user_image','users.name as user_name','discussion_comment.comment')
+            ->get();
+            $t_comments = DB::table('discussion_comment')
+            ->where('discussion_id',$discussionId)
+            ->select(DB::raw('COUNT(id) AS total_comments'))
+            ->orderBy('discussion_comment.id','desc')
+            ->groupBy('discussion_id')->take(5)->get();
+           $total_comments =  $t_comments[0]->total_comments;
+        }
+        $discussion[0]->{'participants_data'} = $participants;
+        $discussion[0]->{'total_votes'} = $total_votes;
+        $discussion[0]->{'votes'} = $votes;
+        $discussion[0]->{'total_comments'} = $total_comments;
+        $discussion[0]->{'comments'} = $comments;
+
+        return json_encode(array('status'=>'success','data'=>$discussion));
     }
 }

@@ -28,6 +28,8 @@ Route::post('/club/members',[ClubController::class,'addMembers']);
 Route::get('/club/members/{clubName}',[ClubController::class,'getMembers']);
 Route::get('/user_clubs/{userId}',[ClubController::class,'getUserClubs']);
 Route::post('/discussion/create',[DiscussionController::class,'create']);
+Route::get('/discussion/user/{userId}',[DiscussionController::class,'getUserDiscussion']);
+Route::get('/discussion/manage/{discussionId}',[DiscussionController::class,'getDiscussionManage']);
 
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {

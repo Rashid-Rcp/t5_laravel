@@ -17,6 +17,8 @@ class CreateDiscussionVoteTable extends Migration
             $table->id();
             $table->unsignedBigInteger('discussion_id');
             $table->foreign('discussion_id')->references('id')->on('discussion');
+            $table->unsignedBigInteger('participant_id');
+            $table->foreign('participant_id')->references('id')->on('users');
             $table->unsignedBigInteger('user_id');
             $table->foreign('user_id')->references('id')->on('users');
             $table->dateTime('date');
