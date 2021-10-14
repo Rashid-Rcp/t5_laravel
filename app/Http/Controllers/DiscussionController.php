@@ -18,6 +18,7 @@ class DiscussionController extends Controller
         $vote = $request->input('vote');
         $comment = $request->input('comment');
         $tags = $request->input('tags');
+        $duration = $request->input('duration');
         $participants = $request->input('participants');
         $clubID = DB::table('club')->where('name',$club)->pluck('id')->toArray()[0];
         if(!$clubID){
@@ -50,6 +51,7 @@ class DiscussionController extends Controller
             'topic'=>$title,
             'description'=>'',
             'description_audio'=>$topic_voice,
+            'audio_duration'=>$duration,
             'participants'=>$participants,
             'comment'=>$comment,
             'vote'=>$vote,
@@ -111,37 +113,9 @@ class DiscussionController extends Controller
         ->select('discussion.id','discussion.topic','discussion.vote','discussion.comment','discussion.status','discussion.date','votes.votes','comments.comments','answers.answers','club.name as club')
         ->orderBy('discussion.date' ,'desc')
         ->get();
-        $now = Carbon::now();
+       
         foreach($discussions as $key=>$discussion){
-            $date = new Carbon($discussion->date);
-           
-            $time = $date->diffInYears($now);
-            $unit = $time === 1?'year':'years';
-            if(!$time){
-                $time = $date->diffInMonths($now);
-                $unit = $time === 1?'month':'months';
-            }
-            if(!$time){
-                $time = $date->diffInDays($now);
-                $unit = $time === 1?'day':'days';
-            }
-            if(!$time){
-                $time = $date->diffInHours($now);
-                $unit = $time === 1?'hour':'hours';
-            }
-            if(!$time){
-                $time = $date->diffInMinutes($now);
-                $unit = $time === 1?'minute':'minutes';
-            }
-            if(!$time){
-                $time = 'Just now';
-                $unit = '';
-            }
-            if($unit){
-                $unit .= ' ago';
-            }
-            
-            $discussions[$key]->time = $time .' '.$unit;
+            $discussions[$key]->time = $this->dateCalculator($discussion->date);
         }
         if($discussions){
             return json_encode(array(
@@ -154,6 +128,37 @@ class DiscussionController extends Controller
                 'status'=>'error',
             ));
         } 
+    }
+
+    public function dateCalculator($date){
+        $date = new Carbon($date);
+        $now = Carbon::now();
+        $time = $date->diffInYears($now);
+        $unit = $time === 1?'year':'years';
+        if(!$time){
+            $time = $date->diffInMonths($now);
+            $unit = $time === 1?'month':'months';
+        }
+        if(!$time){
+            $time = $date->diffInDays($now);
+            $unit = $time === 1?'day':'days';
+        }
+        if(!$time){
+            $time = $date->diffInHours($now);
+            $unit = $time === 1?'hour':'hours';
+        }
+        if(!$time){
+            $time = $date->diffInMinutes($now);
+            $unit = $time === 1?'minute':'minutes';
+        }
+        if(!$time){
+            $time = 'Just now';
+            $unit = '';
+        }
+        if($unit){
+            $unit .= ' ago';
+        }
+       return( $time .' '.$unit);
     }
 
     public function getDiscussionManage($discussionId){
@@ -169,6 +174,8 @@ class DiscussionController extends Controller
         $participants = DB::table('users')
         ->whereIn('id',$participant_ids)
         ->select('id','image','name')->get();
+        $creator = DB::table('users')->where('id',$discussion[0]->creator_id)->pluck('name');
+        $date = $this->dateCalculator($discussion[0]->date);
         $votes = [];
         $total_votes = 0;
         if($discussion[0]->vote === 'true'){
@@ -207,7 +214,22 @@ class DiscussionController extends Controller
         $discussion[0]->{'votes'} = $votes;
         $discussion[0]->{'total_comments'} = $total_comments;
         $discussion[0]->{'comments'} = $comments;
+        $discussion[0]->{'creator'} = $creator[0];
+        $discussion[0]->{'date'} = $date;
 
         return json_encode(array('status'=>'success','data'=>$discussion));
+    }
+
+    public function getDiscussionAllComments($discussionId){
+        $comments = DB::table('discussion_comment')
+        ->join('users','discussion_comment.user_id','=','users.id')
+        ->where('discussion_id',$discussionId)
+        ->select('users.id as user_id','users.image as user_image','users.name as user_name','discussion_comment.comment')
+        ->get();
+        if($comments){
+            return json_encode(
+                array('status'=>'success','comments'=>$comments)
+            );
+        }
     }
 }

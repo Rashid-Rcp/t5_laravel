@@ -20,6 +20,7 @@ class CreateDiscussionTable extends Migration
             $table->string('topic');
             $table->text('description');
             $table->string('description_audio');
+            $table->string('audio_duration');
             $table->string('participants');
             $table->string('comment');
             $table->string('vote');
