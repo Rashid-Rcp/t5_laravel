@@ -21,10 +21,9 @@ class CreateDiscussionTable extends Migration
             $table->text('description');
             $table->string('description_audio');
             $table->string('audio_duration');
-            $table->string('participants');
             $table->string('comment');
             $table->string('vote');
-            $table->string('tags');
+            $table->string('tags')->nullable();
             $table->string('status');
             $table->dateTime('date');
             $table->foreign('club_id')->references('id')->on('club');

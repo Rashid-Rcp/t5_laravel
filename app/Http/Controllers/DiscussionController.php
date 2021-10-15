@@ -10,7 +10,7 @@ class DiscussionController extends Controller
     //
     public function create(Request $request){
 
-       // return json_encode(array('status'=>'ok'));
+        //return json_encode(array('status'=>'ok'));
         $user = $request->input('user');
         $club = $request->input('club');
         $title = $request->input('title');
@@ -45,6 +45,8 @@ class DiscussionController extends Controller
             $request->file('topic_voice')->move($filePath, $voice);
             $topic_voice = $year .'/'.$month.'/'.$voice;
         }
+       
+      
         $id = DB::table('discussion')->insertGetId([
             'club_id'=>$clubID,
             'creator_id'=>$user,
@@ -52,13 +54,24 @@ class DiscussionController extends Controller
             'description'=>'',
             'description_audio'=>$topic_voice,
             'audio_duration'=>$duration,
-            'participants'=>$participants,
             'comment'=>$comment,
             'vote'=>$vote,
             'tags'=>$tags,
             'status'=>'open',
             'date'=>$date
         ]);
+       
+        if($id){
+            $participant_list = array();
+            foreach(json_decode($participants) as $participant){
+                $participant_list[]= array(
+                    'discussion_id'=>$id,
+                    'participant_id'=>$participant
+                );
+            }
+            DB::table('discussion_participants')
+            ->insert($participant_list);
+        }
 
         if($id){
             return json_encode(array(
@@ -162,7 +175,6 @@ class DiscussionController extends Controller
     }
 
     public function getDiscussionManage($discussionId){
-       
 
         $discussion = DB::table('discussion')
         ->join('club','club.id','=','discussion.club_id')
@@ -170,7 +182,8 @@ class DiscussionController extends Controller
         ->select('discussion.*','club.name as club','users.name as creator')
         ->where('discussion.id',$discussionId)
         ->get();
-        $participant_ids = json_decode($discussion[0]->participants);
+        $participant_ids = DB::table('discussion_participants')
+        ->where('discussion_id',$discussionId)->pluck('participant_id')->toArray();
         $participants = DB::table('users')
         ->whereIn('id',$participant_ids)
         ->select('id','image','name')->get();
@@ -183,6 +196,7 @@ class DiscussionController extends Controller
                 $p_votes = DB::table('discussion_vote')
                 ->join('users','users.id','=','discussion_vote.participant_id')
                 ->where('discussion_vote.participant_id',$participant)
+                ->where('discussion_vote.discussion_id',$discussionId)
                 ->select('users.id as user_id' ,'users.image' ,'users.name', DB::raw('COUNT(discussion_vote.id) AS votes'))
                 ->groupBy('discussion_vote.participant_id','users.id','users.image','users.name')->get();
                 array_push($votes,array($participant=>$p_votes));
@@ -191,9 +205,9 @@ class DiscussionController extends Controller
             ->where('discussion_id',$discussionId)
             ->select(DB::raw('COUNT(id) AS total_votes'))
             ->groupBy('discussion_id')->get();
-           $total_votes =  $t_votes[0]->total_votes;
-
+           $total_votes = count($t_votes) > 0 ?  $t_votes[0]->total_votes:0;
         }
+      
         $comments =[];
         $total_comments = 0;
         if($discussion[0]->comment === 'true'){
@@ -207,7 +221,7 @@ class DiscussionController extends Controller
             ->select(DB::raw('COUNT(id) AS total_comments'))
             ->orderBy('discussion_comment.id','desc')
             ->groupBy('discussion_id')->take(5)->get();
-           $total_comments =  $t_comments[0]->total_comments;
+           $total_comments = count($t_comments) > 0 ?  $t_comments[0]->total_comments:0;
         }
         $discussion[0]->{'participants_data'} = $participants;
         $discussion[0]->{'total_votes'} = $total_votes;
@@ -216,7 +230,6 @@ class DiscussionController extends Controller
         $discussion[0]->{'comments'} = $comments;
         $discussion[0]->{'creator'} = $creator[0];
         $discussion[0]->{'date'} = $date;
-
         return json_encode(array('status'=>'success','data'=>$discussion));
     }
 
@@ -231,5 +244,59 @@ class DiscussionController extends Controller
                 array('status'=>'success','comments'=>$comments)
             );
         }
+    }
+
+    public function getUserFollowDiscussionAll($userId){
+        $discussions = DB::table('discussion')
+        ->join('club','discussion.club_id','=','club.id')
+        ->whereIn('discussion.club_id', function ($query) use($userId){
+            $query->select('club_id')
+            ->from('club_members')
+            ->where('member_id',$userId);
+        })
+        ->select('discussion.id','discussion.topic','discussion.status','discussion.date','club.name as club')
+        ->selectSub(function ($query) use($userId){
+            /** @var $query \Illuminate\Database\Query\Builder */
+            $query->from('discussion_participants')
+                  ->selectRaw('COUNT(*)')
+                  ->where('discussion_participants.participant_id', '=', $userId)
+                  ->whereRaw('`discussion_participants`.`discussion_id` = `discussion`.`id`');
+    
+        }, 'participant')
+        ->orderBy('discussion.date','desc')
+        ->get();
+        foreach($discussions as $key=>$discussion){
+            $discussions[$key]->time = $this->dateCalculator($discussion->date);
+        }
+
+     return json_encode(
+         array('status'=>'success',
+         'discussions'=>$discussions
+         )
+     );
+    }
+
+    public function getUserFollowDiscussionParticipant($userId){
+
+        $discussions = DB::table('discussion')
+        ->join('club','discussion.club_id','=','club.id')
+        ->whereIn('discussion.club_id', function ($query) use($userId){
+            $query->select('club_id')
+            ->from('club_members')
+            ->where('member_id',$userId);
+        })
+        ->select('discussion.id','discussion.topic','discussion.participants','discussion.status','discussion.date','club.name as club')
+        ->orderBy('discussion.date','desc')
+        ->get();
+        foreach($discussions as $key=>$discussion){
+            $discussions[$key]->time = $this->dateCalculator($discussion->date);
+        }
+
+     return json_encode(
+         array('status'=>'success',
+         'discussions'=>$discussions
+         )
+     );
+
     }
 }
