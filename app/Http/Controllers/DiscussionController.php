@@ -280,12 +280,17 @@ class DiscussionController extends Controller
 
         $discussions = DB::table('discussion')
         ->join('club','discussion.club_id','=','club.id')
+        ->join('discussion_participants', function($join)  use($userId){
+            $join->on('discussion_participants.discussion_id','=','discussion.id')
+            ->where('discussion_participants.participant_id','=',$userId);
+        })
         ->whereIn('discussion.club_id', function ($query) use($userId){
             $query->select('club_id')
             ->from('club_members')
             ->where('member_id',$userId);
         })
-        ->select('discussion.id','discussion.topic','discussion.participants','discussion.status','discussion.date','club.name as club')
+        ->select('discussion.id','discussion.topic','discussion.status','discussion.date','club.name as club' ,'discussion_participants.id as participant')
+        
         ->orderBy('discussion.date','desc')
         ->get();
         foreach($discussions as $key=>$discussion){
