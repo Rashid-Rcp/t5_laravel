@@ -20,7 +20,8 @@ class CreateDiscussionAnswerTable extends Migration
             $table->unsignedBigInteger('user_id');
             $table->foreign('user_id')->references('id')->on('users');
             $table->string('audio');
-            $table->text('text');
+            $table->string('audio_duration');
+            $table->text('text')->nullable();
             //$table->timestamps();
         });
     }

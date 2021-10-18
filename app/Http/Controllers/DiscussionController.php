@@ -304,4 +304,51 @@ class DiscussionController extends Controller
      );
 
     }
+
+    public function discussionAnswer(Request $request){
+        $participant = $request->input('user_id');
+        $discussion = $request->input('discussion_id');
+        $text = $request->input('answer_text');
+        $duration = $request->input('answer_duration');
+        $answer_voice = '';
+        $date = Carbon::now();
+        $year = $date->format('Y');
+        $month = $date->format('m');
+        $filePath = public_path('voice/club/'.$year .'/'.$month);
+        if (!file_exists($filePath)) {
+                mkdir($filePath, 0777, true);
+        }
+        if ($request->hasFile('answer_voice')) {
+            $voice = time().uniqid().'.'.$request->file('answer_voice')->extension();  
+            $path = $filePath.'/'.$voice; 
+            while(file_exists($path)){
+                $voice = time().uniqid().'.'.$request->file('answer_voice')->extension();
+                $path = $filePath.'/'.$voice; 
+            }
+            $request->file('answer_voice')->move($filePath, $voice);
+            $answer_voice = $year .'/'.$month.'/'.$voice;
+        }
+
+        $id = DB::table('discussion_answer')
+        ->insertGetId([
+            'discussion_id'=>$discussion,
+            'user_id'=>$participant,
+            'audio'=>$answer_voice,
+            'audio_duration'=>$duration,
+            'text'=>$text,
+        ]);
+        if($id){
+            return json_encode(
+                array(
+                    'status'=>'success',
+                    'id'=>$id,
+                )
+            ) ;
+        }
+    }
+
+    public function discussionDetails($discussionId){
+        
+
+    }
 }
