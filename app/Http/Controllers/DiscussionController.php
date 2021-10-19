@@ -348,7 +348,44 @@ class DiscussionController extends Controller
     }
 
     public function discussionDetails($discussionId){
-        
+
+        $votes = DB::table('discussion_vote')
+        ->select('discussion_id',DB::raw('COUNT(id) AS votes'))
+        ->groupBy('discussion_id');
+
+        $comments = DB::table('discussion_comment')
+        ->select('discussion_id',DB::raw('COUNT(id) AS comments'))
+        ->groupBy('discussion_id');
+
+        $discussion = DB::table('discussion')
+        ->join('club','club.id','=','discussion.club_id')
+        ->join('users','users.id','=','discussion.creator_id')
+        ->leftJoinSub($votes,'votes',function($join){
+            $join->on('votes.discussion_id','=','discussion.id');
+          })
+        ->leftJoinSub($comments,'comments',function($join){
+            $join->on('comments.discussion_id','=','discussion.id');
+          })
+        ->select('discussion.id','discussion.topic','discussion.description_audio','discussion.audio_duration','discussion.date','discussion.vote','discussion.comment',
+        'votes.votes','comments.comments',
+        'club.name as club','club.image as dp','users.name as creator','users.image as creator_dp'
+        )
+        ->where('discussion.id','=',$discussionId)
+        ->get();
+        $discussion[0]->{'time'} = $this->dateCalculator($discussion[0]->date);
+        $discussionAnswers = DB::table('discussion_answer')
+        ->join('users','users.id','=','discussion_answer.user_id')
+        ->select('discussion_answer.audio','discussion_answer.audio_duration','discussion_answer.text','users.name as participant','users.image as participant_dp')
+        ->where('discussion_answer.discussion_id','=',$discussionId)
+        ->orderBy('discussion_answer.id','desc')
+        ->simplePaginate(10);
+        return json_encode(
+            array(
+                'status'=>'success',
+                'discussion'=>$discussion,
+                'answers'=>$discussionAnswers
+            )
+        );
 
     }
 }
