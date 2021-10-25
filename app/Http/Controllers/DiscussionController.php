@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use App\Events\discussionAnswer;
 use Carbon\Carbon;
 use DateTime;
 class DiscussionController extends Controller
@@ -337,6 +338,22 @@ class DiscussionController extends Controller
             'audio_duration'=>$duration,
             'text'=>$text,
         ]);
+        $user_data = DB::table('users')
+        ->select('id','image','name')->where('id',$participant)->first();
+        $answer = 
+            array(
+                'audio'=>$answer_voice,
+                'audio_duration'=>$duration,
+                'text'=>$text,
+                'participant'=>$user_data->name,
+                'participant_dp'=>$user_data->image,
+                'participant_id'=>$user_data->id,
+
+            );
+
+
+        event(new discussionAnswer($answer,$discussion)); // socket trigger
+
         if($id){
             return json_encode(
                 array(
@@ -377,7 +394,7 @@ class DiscussionController extends Controller
         ->join('users','users.id','=','discussion_answer.user_id')
         ->select('discussion_answer.audio','discussion_answer.audio_duration','discussion_answer.text','users.name as participant','users.image as participant_dp')
         ->where('discussion_answer.discussion_id','=',$discussionId)
-        ->orderBy('discussion_answer.id','desc')
+        ->orderBy('discussion_answer.id','asc')
         ->simplePaginate(10);
         return json_encode(
             array(
