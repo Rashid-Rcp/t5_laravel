@@ -373,6 +373,8 @@ class DiscussionController extends Controller
         $comments = DB::table('discussion_comment')
         ->select('discussion_id',DB::raw('COUNT(id) AS comments'))
         ->groupBy('discussion_id');
+        $participants = DB::table('discussion_participants')
+        ->where('discussion_id','=',$discussionId)->pluck('participant_id')->toArray();
 
         $discussion = DB::table('discussion')
         ->join('club','club.id','=','discussion.club_id')
@@ -390,6 +392,7 @@ class DiscussionController extends Controller
         ->where('discussion.id','=',$discussionId)
         ->get();
         $discussion[0]->{'time'} = $this->dateCalculator($discussion[0]->date);
+        $discussion[0]->{'participants'} = $participants;
         $discussionAnswers = DB::table('discussion_answer')
         ->join('users','users.id','=','discussion_answer.user_id')
         ->select('discussion_answer.audio','discussion_answer.audio_duration','discussion_answer.text','users.name as participant','users.image as participant_dp')
@@ -403,6 +406,33 @@ class DiscussionController extends Controller
                 'answers'=>$discussionAnswers
             )
         );
+    }
 
+    public function discussionParticipants($discussionId){
+        $votes = DB::table('discussion_vote')
+        ->select('participant_id','discussion_id',DB::raw('COUNT(id) AS votes'))
+        ->groupBy('participant_id','discussion_id');
+
+        $total_votes = DB::table('discussion_vote')
+        ->where('discussion_id','=',$discussionId)
+        ->get()->count();
+
+       $participants= DB::table('discussion_participants')
+        ->join('users','discussion_participants.participant_id','=','users.id')
+        ->leftJoinSub($votes,'votes',function($join) use($discussionId) {
+            $join->on('votes.participant_id','=','discussion_participants.participant_id')
+            ->where('votes.discussion_id', '=', $discussionId);
+          })
+        ->where('discussion_participants.discussion_id','=',$discussionId)
+        ->select('users.id','users.name','users.image','votes.votes')
+        ->orderBy('users.id','asc')
+        ->get();
+        return json_encode(
+            array(
+                'status'=>'success',
+                'participants'=>$participants,
+                'total_votes'=>$total_votes
+            )
+        );
     }
 }

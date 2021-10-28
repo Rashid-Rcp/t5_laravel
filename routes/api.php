@@ -36,6 +36,7 @@ Route::get('/discussion/user_follow/all/{userId}',[DiscussionController::class,'
 Route::get('/discussion/user_follow/participant/{userId}',[DiscussionController::class,'getUserFollowDiscussionParticipant']);
 Route::post('/discussion/answer',[DiscussionController::class,'discussionAnswer']);
 Route::get('/discussion/details/{discussionId}',[DiscussionController::class,'discussionDetails']);
+Route::get('/discussion/participants/{discussionId}',[DiscussionController::class,'discussionParticipants']);
 
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
