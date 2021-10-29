@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Events\discussionAnswer;
 use Carbon\Carbon;
 use DateTime;
+use Illuminate\Support\Facades\Date;
+
 class DiscussionController extends Controller
 {
     //
@@ -408,10 +410,15 @@ class DiscussionController extends Controller
         );
     }
 
-    public function discussionParticipants($discussionId){
+    public function discussionVotes($discussionId,$userId){
         $votes = DB::table('discussion_vote')
         ->select('participant_id','discussion_id',DB::raw('COUNT(id) AS votes'))
         ->groupBy('participant_id','discussion_id');
+        $vote_for = DB::table('discussion_vote')
+        ->select('participant_id')
+        ->where('discussion_id','=',$discussionId)
+        ->where('user_id','=',$userId)
+        ->first();
 
         $total_votes = DB::table('discussion_vote')
         ->where('discussion_id','=',$discussionId)
@@ -431,8 +438,46 @@ class DiscussionController extends Controller
             array(
                 'status'=>'success',
                 'participants'=>$participants,
-                'total_votes'=>$total_votes
+                'total_votes'=>$total_votes,
+                'vote_for'=>$vote_for
             )
         );
+    }
+
+    public function postDiscussionVotes(Request $request){
+        $user = $request->input('userId');
+        $participant = $request->input('participantId');
+        $discussion = $request->input('discussionId');
+        date_default_timezone_set("Asia/Kolkata");
+        $date = Carbon::now();
+        $isVoted =  DB::table('discussion_vote')
+        ->select('id')
+        ->where('discussion_id','=',$discussion)
+        ->where('user_id','=',$user)
+        ->first();
+        if(!$isVoted){
+            $id = DB::table('discussion_vote')->insertGetId([
+                'discussion_id'=>$discussion,
+                'participant_id'=>$participant,
+                'user_id'=>$user,
+                'date'=>$date
+            ]);
+            return json_encode(
+                array('status'=>'success',
+                    'id'=>$id
+                )
+            );
+        }
+        else{
+            $id = DB::table('discussion_vote')
+            ->where('discussion_id','=',$discussion)
+            ->where('user_id','=',$user)
+            ->update(['participant_id'=>$participant]);
+            return json_encode(
+                array('status'=>'success',
+                    'id'=>$id
+                )
+            );
+        }
     }
 }
