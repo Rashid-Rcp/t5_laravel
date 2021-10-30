@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use App\Events\discussionAnswer;
+use App\Events\discussionVote;
 use Carbon\Carbon;
 use DateTime;
+use GrahamCampbell\ResultType\Result;
 use Illuminate\Support\Facades\Date;
 
 class DiscussionController extends Controller
@@ -410,21 +412,11 @@ class DiscussionController extends Controller
         );
     }
 
-    public function discussionVotes($discussionId,$userId){
+    public function getParticipantWithVote ($discussionId){
         $votes = DB::table('discussion_vote')
         ->select('participant_id','discussion_id',DB::raw('COUNT(id) AS votes'))
         ->groupBy('participant_id','discussion_id');
-        $vote_for = DB::table('discussion_vote')
-        ->select('participant_id')
-        ->where('discussion_id','=',$discussionId)
-        ->where('user_id','=',$userId)
-        ->first();
-
-        $total_votes = DB::table('discussion_vote')
-        ->where('discussion_id','=',$discussionId)
-        ->get()->count();
-
-       $participants= DB::table('discussion_participants')
+        $participants= DB::table('discussion_participants')
         ->join('users','discussion_participants.participant_id','=','users.id')
         ->leftJoinSub($votes,'votes',function($join) use($discussionId) {
             $join->on('votes.participant_id','=','discussion_participants.participant_id')
@@ -434,6 +426,26 @@ class DiscussionController extends Controller
         ->select('users.id','users.name','users.image','votes.votes')
         ->orderBy('users.id','asc')
         ->get();
+
+        return $participants;
+    }
+    public function getDiscussionTotalVotes ($discussionId){
+        
+        $total_votes = DB::table('discussion_vote')
+        ->where('discussion_id','=',$discussionId)
+        ->get()->count();
+        return $total_votes;
+    }
+
+    public function discussionVotes($discussionId,$userId){
+       
+        $participants = $this->getParticipantWithVote($discussionId);
+        $vote_for = DB::table('discussion_vote')
+        ->select('participant_id')
+        ->where('discussion_id','=',$discussionId)
+        ->where('user_id','=',$userId)
+        ->first();
+        $total_votes = $this->getDiscussionTotalVotes($discussionId);
         return json_encode(
             array(
                 'status'=>'success',
@@ -462,22 +474,74 @@ class DiscussionController extends Controller
                 'user_id'=>$user,
                 'date'=>$date
             ]);
-            return json_encode(
-                array('status'=>'success',
-                    'id'=>$id
-                )
-            );
         }
         else{
             $id = DB::table('discussion_vote')
             ->where('discussion_id','=',$discussion)
             ->where('user_id','=',$user)
             ->update(['participant_id'=>$participant]);
-            return json_encode(
-                array('status'=>'success',
-                    'id'=>$id
-                )
-            );
         }
+        $participants = $this->getParticipantWithVote($discussion);
+        $total_votes = $this->getDiscussionTotalVotes($discussion);
+        event(new discussionVote($discussion,$participants,$total_votes)); // socket trigger
+
+        return json_encode(
+            array(
+                'status'=>'success'
+            )
+        );
+    }
+
+    public function postDiscussionComment(Request $request){
+        $user = $request->input('user');
+        $discussion = $request->input('discussion');
+        $comment = $request->input('comment');
+        $date = Carbon::now();
+
+        $id = DB::table('discussion_comment')
+        ->insertGetId([
+            'discussion_id'=>$discussion,
+            'user_id'=>$user,
+            'comment'=>$comment,
+            'date'=>$date
+        ]);
+
+        if($id){
+            $comment = DB::table('discussion_comment')
+            ->join('users','users.id','=','discussion_comment.user_id')
+            ->select('users.id as user','users.name','users.image','discussion_comment.comment','discussion_comment.id')
+            ->where('discussion_comment.id','=',$id)->first();
+            return json_encode(
+                array(
+                    'status'=>'success',
+                    'comment'=>$comment
+                )
+                );
+        }
+
+    }
+
+    public function DiscussionComments($discussion){
+        $comments = DB::table('discussion_comment')
+        ->join('users','users.id','=','discussion_comment.user_id')
+        ->select('users.id as user','users.name' ,'users.image','discussion_comment.comment','discussion_comment.id')
+        ->where('discussion_id','=',$discussion)
+        ->orderBy('discussion_comment.id' ,'desc')
+        ->simplePaginate(10);
+        
+        return json_encode(
+            array(
+                'status'=>'success',
+                'comments'=>$comments
+            )
+            );
+    }
+
+    public function DeleteDiscussionComments($commentId){
+        DB::table('discussion_comment')
+        ->where('id','=',$commentId)->delete();
+        return json_encode(
+            array('status'=>'success')
+        );
     }
 }

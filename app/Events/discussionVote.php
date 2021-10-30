@@ -10,22 +10,24 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class discussionVote
+class discussionVote implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
     public $discussionId;
     public $votes;
+    public $participants;
 
     /**
      * Create a new event instance.
      *
      * @return void
      */
-    public function __construct($votes, $discussionId)
+    public function __construct($discussion, $participants, $total_votes)
     {
         //
-        $this->votes = $votes;
-        $this->discussionId = $discussionId;
+        $this->votes = $total_votes;
+        $this->discussionId = $discussion;
+        $this->participants = $participants;
     }
 
     /**
@@ -55,6 +57,6 @@ class discussionVote
      */
     public function broadcastWith()
     {
-        return ['discussion' => $this->discussionId, 'votes'=>$this->votes];
+        return ['discussion' => $this->discussionId, 'votes'=>$this->votes, 'participants'=>$this->participants];
     }
 }

@@ -38,6 +38,9 @@ Route::post('/discussion/answer',[DiscussionController::class,'discussionAnswer'
 Route::get('/discussion/details/{discussionId}',[DiscussionController::class,'discussionDetails']);
 Route::get('/discussion/votes/{discussionId}/{userId}',[DiscussionController::class,'discussionVotes']);
 Route::post('/discussion/vote',[DiscussionController::class,'postDiscussionVotes']);
+Route::post('/discussion/comment',[DiscussionController::class,'postDiscussionComment']);
+Route::get('/discussion/comment/{discussionId}',[DiscussionController::class,'DiscussionComments']);
+Route::delete('/discussion/comment/{discussionId}',[DiscussionController::class,'DeleteDiscussionComments']);
 
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
