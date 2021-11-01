@@ -23,6 +23,7 @@ Route::post('/test',[TestController::class,'socketTest']);
 Route::post('/user',[UserController::class,'createUser']);
 Route::post('/user/numbers',[UserController::class,'getUsers']);
 Route::post('/login',[UserController::class,'loginUser']);
+Route::get('/user/data/{userId}',[UserController::class,'getUserData']);
 Route::get('/user/club/{userId}',[ClubController::class,'userClub']);
 Route::post('/club/create',[ClubController::class,'create']);
 Route::post('/club/members',[ClubController::class,'addMembers']);

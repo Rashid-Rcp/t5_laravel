@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use App\Events\discussionAnswer;
 use App\Events\discussionVote;
+use App\Events\discussionComment;
 use Carbon\Carbon;
 use DateTime;
 use GrahamCampbell\ResultType\Result;
@@ -511,6 +512,9 @@ class DiscussionController extends Controller
             ->join('users','users.id','=','discussion_comment.user_id')
             ->select('users.id as user','users.name','users.image','discussion_comment.comment','discussion_comment.id')
             ->where('discussion_comment.id','=',$id)->first();
+            $total_comments = DB::table('discussion_comment')
+            ->where('discussion_id','=',$discussion)->get()->count();
+            event(new discussionComment($total_comments,$discussion)); // socket trigger
             return json_encode(
                 array(
                     'status'=>'success',

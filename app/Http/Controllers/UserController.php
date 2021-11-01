@@ -137,4 +137,45 @@ class UserController extends Controller
         ));
       }
     }
+
+  public function getUserData($userId){
+
+      $userData = DB::table('users')
+      ->where('id','=',$userId)
+      ->select('id','name','image','phone','email','about')
+      ->first();
+
+      $followers = DB::table('club_members')
+        ->select('club_id',DB::raw('COUNT(id) AS followers'))
+        ->groupBy('club_id');
+
+      $clubs_follow = DB::table('club_members')
+      ->join('club','club.id','=','club_members.club_id')
+      ->leftJoinSub($followers,'followers',function($join){
+        $join->on('followers.club_id','=','club_members.club_id');
+      })
+      ->where('club_members.member_id','=',$userId)
+      ->where('club_members.role','!=','admin')
+      ->select('club.id','club.name','club.image','followers.followers')
+      ->get();
+      $clubs_admin = DB::table('club_members')
+      ->join('club','club.id','=','club_members.club_id')
+      ->leftJoinSub($followers,'followers',function($join){
+        $join->on('followers.club_id','=','club_members.club_id');
+      })
+      ->where('club_members.member_id','=',$userId)
+      ->where('club_members.role','=','admin')
+      ->select('club.id','club.name','club.image','followers.followers')
+      ->get();
+
+      return json_encode(
+        array(
+          'status'=>'success',
+          'userData'=>$userData,
+          'clubsAdmin'=>$clubs_admin,
+          'clubsFollow'=>$clubs_follow
+
+        )
+        );
+    }
 }
