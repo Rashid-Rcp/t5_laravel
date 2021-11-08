@@ -6,6 +6,7 @@ use DateTime;
 use GrahamCampbell\ResultType\Result;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class ClubController extends Controller
 {
@@ -158,7 +159,103 @@ class ClubController extends Controller
                 )
             ) ;
         }
-        
+    }
 
+    public function clubDetails($clubId){
+
+        $members = DB::table('club_members')
+        ->select('club_id',DB::raw('COUNT(id) AS members'))
+        ->groupBy('club_id');
+
+        $discussions = DB::table('discussion')
+        ->select('club_id',DB::raw('COUNT(id) AS discussions'))
+        ->groupBy('club_id');
+
+        $clubDetails = DB::table('club')
+        ->leftJoinSub($members,'members',function($join){
+            $join->on('members.club_id','=','club.id');
+          })
+        ->leftJoinSub($discussions,'discussions',function($join){
+            $join->on('discussions.club_id','=','club.id');
+          })
+        ->select('club.name', 'club.image','club.description','members.members','discussions.discussions')
+        ->where('club.id','=',$clubId)
+        ->first();
+
+        //latest 
+        $votes = DB::table('discussion_vote')
+        ->select('discussion_id',DB::raw('COUNT(id) AS votes'))
+        ->groupBy('discussion_id');
+
+        $comments = DB::table('discussion_comment')
+        ->select('discussion_id',DB::raw('COUNT(id) AS comments'))
+        ->groupBy('discussion_id');
+
+        $answers = DB::table('discussion_answer')
+        ->select('discussion_id',DB::raw('COUNT(id) AS answers'))
+        ->groupBy('discussion_id');
+
+        $latest_discussion = DB::table('discussion')
+        ->leftJoinSub($votes,'votes',function($join){
+            $join->on('votes.discussion_id','=','discussion.id');
+          })
+          ->leftJoinSub($answers,'answers',function($join){
+            $join->on('answers.discussion_id','=','discussion.id');
+          })
+          ->leftJoinSub($comments,'comments',function($join){
+            $join->on('comments.discussion_id','=','discussion.id');
+          })
+        ->where('discussion.club_id','=',$clubId)
+        ->select('discussion.id','discussion.topic','discussion.vote','discussion.comment','discussion.status','discussion.date','votes.votes','comments.comments','answers.answers')
+        ->orderBy('discussion.date' ,'desc')
+        ->first();
+        $latest_discussion->{'time'} =$this->dateCalculator($latest_discussion->date);
+
+        //members
+        $members = DB::table('club_members')
+        ->join('users','users.id','=','club_members.member_id')
+        ->where('club_members.club_id','=',$clubId)
+        ->select('users.id','users.name','users.image','club_members.role')
+        ->simplePaginate(10);
+
+        return json_encode(
+            [
+                'status'=>'success',
+                'clubDetails'=>$clubDetails,
+                'latest'=>$latest_discussion,
+                'members'=>$members,
+            ]
+            );
+    }
+
+    public function dateCalculator($date){
+        $date = new Carbon($date);
+        $now = Carbon::now();
+        $time = $date->diffInYears($now);
+        $unit = $time === 1?'year':'years';
+        if(!$time){
+            $time = $date->diffInMonths($now);
+            $unit = $time === 1?'month':'months';
+        }
+        if(!$time){
+            $time = $date->diffInDays($now);
+            $unit = $time === 1?'day':'days';
+        }
+        if(!$time){
+            $time = $date->diffInHours($now);
+            $unit = $time === 1?'hour':'hours';
+        }
+        if(!$time){
+            $time = $date->diffInMinutes($now);
+            $unit = $time === 1?'minute':'minutes';
+        }
+        if(!$time){
+            $time = 'Just now';
+            $unit = '';
+        }
+        if($unit){
+            $unit .= ' ago';
+        }
+       return( $time .' '.$unit);
     }
 }

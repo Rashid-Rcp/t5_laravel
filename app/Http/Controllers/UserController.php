@@ -157,7 +157,7 @@ class UserController extends Controller
       ->where('club_members.member_id','=',$userId)
       ->where('club_members.role','!=','admin')
       ->select('club.id','club.name','club.image','followers.followers')
-      ->get();
+      ->simplePaginate(5);
       $clubs_admin = DB::table('club_members')
       ->join('club','club.id','=','club_members.club_id')
       ->leftJoinSub($followers,'followers',function($join){
@@ -166,7 +166,7 @@ class UserController extends Controller
       ->where('club_members.member_id','=',$userId)
       ->where('club_members.role','=','admin')
       ->select('club.id','club.name','club.image','followers.followers')
-      ->get();
+      ->simplePaginate(5);
 
       return json_encode(
         array(
