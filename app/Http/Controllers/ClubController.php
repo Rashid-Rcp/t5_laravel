@@ -209,8 +209,10 @@ class ClubController extends Controller
         ->select('discussion.id','discussion.topic','discussion.vote','discussion.comment','discussion.status','discussion.date','votes.votes','comments.comments','answers.answers')
         ->orderBy('discussion.date' ,'desc')
         ->first();
-        $latest_discussion->{'time'} =$this->dateCalculator($latest_discussion->date);
-
+        if($latest_discussion){
+            $latest_discussion->{'time'} =$this->dateCalculator($latest_discussion->date);
+        }
+        
         //members
         $members = DB::table('club_members')
         ->join('users','users.id','=','club_members.member_id')
@@ -257,5 +259,33 @@ class ClubController extends Controller
             $unit .= ' ago';
         }
        return( $time .' '.$unit);
+    }
+
+    public function clubList($type, $user){
+        $members = DB::table('club_members')
+        ->select('club_id',DB::raw('count(id) as members'))
+        ->groupBy('club_id');
+
+        $clubs = DB::table('club_members')
+        ->join('club','club.id','=','club_members.club_id')
+        ->leftJoinSub($members,'members',function($join){
+            $join->on('members.club_id','=','club_members.club_id');
+          })
+        ->where('club_members.member_id','=',$user)
+        ->where(function($query) use($type){
+            if($type === 'admin'){
+                $query->where('club_members.role','=','admin');
+            }
+            else{
+                $query->where('club_members.role','!=','admin');
+            }
+        })
+        ->select('club.id','club.image','club.name','members.members')
+        ->simplePaginate(20);
+        return json_encode([
+            'status'=>'success',
+            'clubs'=>$clubs
+        ]);
+
     }
 }
