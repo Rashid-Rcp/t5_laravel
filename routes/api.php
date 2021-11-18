@@ -22,6 +22,8 @@ Route::post('/test',[TestController::class,'socketTest']);
 
 Route::post('/user',[UserController::class,'createUser']);
 Route::post('/user/numbers',[UserController::class,'getUsers']);
+Route::post('/user/update',[UserController::class,'updateProfile']);
+Route::get('/user/public_data/{profileId}',[UserController::class,'publicProfile']);
 Route::post('/login',[UserController::class,'loginUser']);
 Route::get('/user/data/{userId}',[UserController::class,'getUserData']);
 Route::get('/user/club/{userId}',[ClubController::class,'userClub']);

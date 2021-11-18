@@ -178,4 +178,72 @@ class UserController extends Controller
         )
         );
     }
+
+    public function updateProfile(Request $request){
+      $id = $request->input('id');
+      $name = $request->input('name');
+      $email = $request->input('email');
+      $phone = $request->input('phone');
+      $about = $request->input('about');
+      $userExists = false;
+      $imageName = '';
+      if ($request->hasFile('image')){
+          $imageName = time().uniqid().'.'.$request->file('image')->extension();  
+          $path = public_path('images/'.$imageName); 
+    
+          while(file_exists($path)){
+            $imageName = time().uniqid().'.'.$request->file('image')->extension();
+            $path = public_path('images/'.$imageName); 
+          }
+          $request->file('image')->move(public_path('images'), $imageName);
+      }
+
+      if (DB::table('users')->where('email', $request->input('email'))->where('id','!=',$id)->exists()) {
+        $userExists = true;
+       return json_encode(array(
+        'status'=>'email_error',
+        'message'=>'email already exist'
+       ));
+      }
+      if(DB::table('users')->where('phone', $request->input('phone'))->where('id','!=',$id)->exists()){
+          $userExists = true;
+          return json_encode(array(
+              'status'=>'phone_error',
+              'message'=>'phone number already exist'
+              ));
+      }
+
+      if(!$userExists){
+        $data = [
+          'name'=>$name,
+          'phone'=>$phone,
+          'email'=>$email,
+          'about'=>$about
+        ];
+        if($imageName !== ''){
+          $data['image']=$imageName;
+        }
+        DB::table('users')
+        ->where('id','=',$id)
+        ->update($data);
+
+        return json_encode(
+          [
+            'status'=>'success'
+          ]
+        );
+      }
+
+    }
+
+   public function publicProfile($profileId){
+     $profile = DB::table('users')
+     ->select('id','name','about','image')
+     ->where('id','=',$profileId)->first();
+     return json_encode([
+       'status'=>'success',
+       'profile'=>$profile
+     ]);
+   }
+
 }
