@@ -46,6 +46,7 @@ Route::post('/discussion/vote',[DiscussionController::class,'postDiscussionVotes
 Route::post('/discussion/comment',[DiscussionController::class,'postDiscussionComment']);
 Route::get('/discussion/comment/{discussionId}',[DiscussionController::class,'DiscussionComments']);
 Route::delete('/discussion/comment/{discussionId}',[DiscussionController::class,'DeleteDiscussionComments']);
+Route::get('/discussion/suggestion/{userId}',[DiscussionController::class,'DiscussionSuggestion']);
 
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {

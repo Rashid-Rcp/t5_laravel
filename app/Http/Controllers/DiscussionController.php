@@ -548,4 +548,22 @@ class DiscussionController extends Controller
             array('status'=>'success')
         );
     }
+
+    public function DiscussionSuggestion($userId){
+        $discussions = DB::table('discussion')
+        ->join('club','discussion.club_id','=','club.id')
+        ->where('discussion.status','=','open')
+        ->select('discussion.id','discussion.topic','discussion.status','discussion.date','club.name as club')
+        ->inRandomOrder()
+        ->simplePaginate(10);
+        foreach($discussions as $key=>$discussion){
+            $discussions[$key]->time = $this->dateCalculator($discussion->date);
+        }
+
+     return json_encode(
+         array('status'=>'success',
+         'discussions'=>$discussions
+         )
+     );
+    }
 }
