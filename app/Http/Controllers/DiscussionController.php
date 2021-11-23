@@ -7,6 +7,7 @@ use App\Events\discussionAnswer;
 use App\Events\discussionVote;
 use App\Events\discussionComment;
 use Carbon\Carbon;
+use App\Models\Discussion;
 use DateTime;
 use GrahamCampbell\ResultType\Result;
 use Illuminate\Support\Facades\Date;
@@ -53,20 +54,51 @@ class DiscussionController extends Controller
         }
        
       
-        $id = DB::table('discussion')->insertGetId([
-            'club_id'=>$clubID,
-            'creator_id'=>$user,
-            'topic'=>$title,
-            'description'=>'',
-            'description_audio'=>$topic_voice,
-            'audio_duration'=>$duration,
-            'comment'=>$comment,
-            'vote'=>$vote,
-            'tags'=>$tags,
-            'status'=>'open',
-            'date'=>$date
-        ]);
-       
+        // $id = DB::table('discussion')->insertGetId([
+        //     'club_id'=>$clubID,
+        //     'creator_id'=>$user,
+        //     'topic'=>$title,
+        //     'description'=>'',
+        //     'description_audio'=>$topic_voice,
+        //     'audio_duration'=>$duration,
+        //     'comment'=>$comment,
+        //     'vote'=>$vote,
+        //     'tags'=>$tags,
+        //     'status'=>'open',
+        //     'date'=>$date
+        // ]);
+
+        $discussion = new Discussion;
+
+        // $inserted_data = Discussion::create([
+        //     'club_id'=>$clubID,
+        //     'creator_id'=>$user,
+        //     'topic'=>$title,
+        //     'description'=>'',
+        //     'description_audio'=>$topic_voice,
+        //     'audio_duration'=>$duration,
+        //     'comment'=>$comment,
+        //     'vote'=>$vote,
+        //     'tags'=>$tags,
+        //     'status'=>'open',
+        //     'date'=>$date
+        // ]);
+
+        $discussion->club_id = $clubID;
+        $discussion->creator_id = $user;
+        $discussion->topic = $title;
+        $discussion->description = '';
+        $discussion->description_audio = $topic_voice;
+        $discussion->audio_duration = $duration;
+        $discussion->comment = $comment;
+        $discussion->vote = $vote;
+        $discussion->tags = $tags;
+        $discussion->status = 'open';
+        $discussion->date = $date;
+        $discussion->save();
+        //$discussion->searchable();
+        $discussion->unsearchable();
+        $id =$discussion->id;
         if($id){
             $participant_list = array();
             foreach(json_decode($participants) as $participant){
@@ -89,6 +121,12 @@ class DiscussionController extends Controller
                 'status'=>'error'
             ));
         }
+    }
+
+    public function remove(){
+        $discussion = new Discussion;
+        $discussion->where('id','=',10)->unsearchable();
+        echo 'oko';
     }
 
     public function getUserDiscussion($userId){
@@ -565,5 +603,14 @@ class DiscussionController extends Controller
          'discussions'=>$discussions
          )
      );
+    }
+
+    public function DiscussionSearch($word){
+        $search = Discussion::search($word)->query(function($query) { 
+            $query->select(['id','topic']);  
+     })->simplePaginate(20);
+        return json_encode(
+            ['status'=>'success','discussions'=>$search]
+        );
     }
 }

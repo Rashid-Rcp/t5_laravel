@@ -26,10 +26,10 @@ class CreateDiscussionTable extends Migration
             $table->string('tags')->nullable();
             $table->string('status');
             $table->dateTime('date');
+            $table->string('type')->default('public');
             $table->foreign('club_id')->references('id')->on('club');
             $table->foreign('creator_id')->references('id')->on('users');
-
-            //$table->timestamps();
+            $table->timestamps();
         });
     }
 

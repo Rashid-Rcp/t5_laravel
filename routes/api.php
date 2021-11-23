@@ -34,6 +34,7 @@ Route::get('/club/{clubId}',[ClubController::class,'clubDetails']);
 Route::get('/club/list/{type}/{user}',[ClubController::class,'clubList']);
 Route::get('/user_clubs/{userId}',[ClubController::class,'getUserClubs']);
 Route::post('/discussion/create',[DiscussionController::class,'create']);
+Route::post('/discussion/remove',[DiscussionController::class,'remove']);
 Route::get('/discussion/user/{userId}',[DiscussionController::class,'getUserDiscussion']);
 Route::get('/discussion/manage/{discussionId}',[DiscussionController::class,'getDiscussionManage']);
 Route::get('/discussion/all_comments/{discussionId}',[DiscussionController::class,'getDiscussionAllComments']);
@@ -47,6 +48,7 @@ Route::post('/discussion/comment',[DiscussionController::class,'postDiscussionCo
 Route::get('/discussion/comment/{discussionId}',[DiscussionController::class,'DiscussionComments']);
 Route::delete('/discussion/comment/{discussionId}',[DiscussionController::class,'DeleteDiscussionComments']);
 Route::get('/discussion/suggestion/{userId}',[DiscussionController::class,'DiscussionSuggestion']);
+Route::get('/discussion/search/{word}',[DiscussionController::class,'DiscussionSearch']);
 
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
