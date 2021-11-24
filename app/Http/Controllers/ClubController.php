@@ -286,6 +286,33 @@ class ClubController extends Controller
             'status'=>'success',
             'clubs'=>$clubs
         ]);
+    }
 
+    public function clubSearch($word){
+        $word = ltrim($word, '@');
+        $club1 = DB::table('club')
+        ->where('name','=',$word)
+        ->select('id','name')->get()->toArray();
+        $club2 = DB::table('club')
+        ->where('name','like',$word.'%')
+        ->select('id','name')
+        // ->union($club1)
+        ->limit(20)->get()->toArray();
+        if(count($club1)){
+            $id = $club1[0]->id;
+            $remove = -1;
+            foreach($club2 as $index => $value){
+                if($value->id === $id){
+                    $remove = $index;
+                    break;
+                }
+            }
+            unset($club2[$index]);
+            array_unshift($club2,$club1[0]);
+        }
+        return json_encode([
+            'status'=>'success',
+            'clubs'=>$club2
+        ]);
     }
 }
