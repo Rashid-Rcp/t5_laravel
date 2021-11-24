@@ -307,7 +307,9 @@ class ClubController extends Controller
                     break;
                 }
             }
-            unset($club2[$index]);
+            if($remove !== -1){
+                unset($club2[$remove]);
+            }
             array_unshift($club2,$club1[0]);
         }
         return json_encode([
