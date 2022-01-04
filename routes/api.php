@@ -32,6 +32,7 @@ Route::post('/club/members',[ClubController::class,'addMembers']);
 Route::get('/club/members/{clubName}',[ClubController::class,'getMembers']);
 Route::get('/club/search/{word}',[ClubController::class,'clubSearch']);
 Route::get('/club/{clubId}',[ClubController::class,'clubDetails']);
+Route::get('/club/discussions/{clubId}',[ClubController::class,'clubDiscussions']);
 Route::get('/club/list/{type}/{user}',[ClubController::class,'clubList']);
 Route::get('/user_clubs/{userId}',[ClubController::class,'getUserClubs']);
 Route::post('/discussion/create',[DiscussionController::class,'create']);

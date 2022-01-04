@@ -59,7 +59,6 @@ class ClubController extends Controller
             }
             $request->file('image')->move(public_path('images/club'), $imageName);
         }
-
        
         $date = new DateTime();
         $club = DB::table('club')
@@ -228,6 +227,59 @@ class ClubController extends Controller
                 'members'=>$members,
             ]
             );
+    }
+
+    public function clubDiscussions($clubId){
+       
+        $votes = DB::table('discussion_vote')
+        ->select('discussion_id',DB::raw('COUNT(id) AS votes'))
+        ->groupBy('discussion_id');
+
+        $comments = DB::table('discussion_comment')
+        ->select('discussion_id',DB::raw('COUNT(id) AS comments'))
+        ->groupBy('discussion_id');
+
+        $answers = DB::table('discussion_answer')
+        ->select('discussion_id',DB::raw('COUNT(id) AS answers'))
+        ->groupBy('discussion_id');
+
+
+        // $isVoted = DB::table('discussion_vote')
+        // ->select('discussion_id',DB::raw('COUNT(id) AS isVoted'))
+        // ->where('user_id',$userId)->groupBy('discussion_id');
+       
+        $discussions = DB::table('discussion')
+        ->join('club','discussion.club_id','=','club.id')
+        ->leftJoinSub($votes,'votes',function($join){
+            $join->on('votes.discussion_id','=','discussion.id');
+          })
+          ->leftJoinSub($answers,'answers',function($join){
+            $join->on('answers.discussion_id','=','discussion.id');
+          })
+          ->leftJoinSub($comments,'comments',function($join){
+            $join->on('comments.discussion_id','=','discussion.id');
+          })
+          
+        
+        ->where('discussion.club_id',$clubId)
+        ->select('discussion.id','discussion.topic','discussion.vote','discussion.comment','discussion.status','discussion.date','votes.votes','comments.comments','answers.answers','club.name as club')
+        ->orderBy('discussion.date' ,'desc')
+        ->simplePaginate(10);
+       
+        foreach($discussions as $key=>$discussion){
+            $discussions[$key]->time = $this->dateCalculator($discussion->date);
+        }
+        if($discussions){
+            return json_encode(array(
+                'status'=>'success',
+                'discussions'=>$discussions
+            ));
+        }
+        else{
+            return json_encode(array(
+                'status'=>'error',
+            ));
+        } 
     }
 
     public function dateCalculator($date){

@@ -169,7 +169,7 @@ class DiscussionController extends Controller
         ->where('discussion.status','open')
         ->select('discussion.id','discussion.topic','discussion.vote','discussion.comment','discussion.status','discussion.date','votes.votes','comments.comments','answers.answers','club.name as club')
         ->orderBy('discussion.date' ,'desc')
-        ->get();
+        ->simplePaginate(10);
        
         foreach($discussions as $key=>$discussion){
             $discussions[$key]->time = $this->dateCalculator($discussion->date);
@@ -307,8 +307,8 @@ class DiscussionController extends Controller
                   ->whereRaw('`discussion_participants`.`discussion_id` = `discussion`.`id`');
     
         }, 'participant')
-        ->orderBy('discussion.date','desc')
-        ->get();
+        ->orderBy('discussion.id','desc')
+        ->simplePaginate(15);
         foreach($discussions as $key=>$discussion){
             $discussions[$key]->time = $this->dateCalculator($discussion->date);
         }
