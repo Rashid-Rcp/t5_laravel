@@ -133,6 +133,21 @@ class ClubController extends Controller
         }
     }
 
+    public function getAllMembers($clubId){
+        $members = DB::table('club_members')
+        ->join('users','users.id','=','club_members.member_id')
+        ->where('club_members.club_id','=',$clubId)
+        ->select('users.id','users.name','users.image','club_members.role')
+        ->simplePaginate(15);
+
+        return json_encode(
+            [
+                'status'=>'success',
+                'members'=>$members,
+            ]
+            );
+    }
+
     public function getUserClubs($userId){
         $clubs = DB::table('club')
         ->whereIn('id',function($query) use($userId){
@@ -217,7 +232,7 @@ class ClubController extends Controller
         ->join('users','users.id','=','club_members.member_id')
         ->where('club_members.club_id','=',$clubId)
         ->select('users.id','users.name','users.image','club_members.role')
-        ->simplePaginate(10);
+        ->simplePaginate(5);
 
         return json_encode(
             [
