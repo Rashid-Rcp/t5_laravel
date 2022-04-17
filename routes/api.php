@@ -29,6 +29,8 @@ Route::get('/user/data/{userId}',[UserController::class,'getUserData']);
 Route::get('/user/club/{userId}',[ClubController::class,'userClub']);
 Route::post('/club/create',[ClubController::class,'create']);
 Route::post('/club/members',[ClubController::class,'addMembers']);
+Route::post('/club/is_member',[ClubController::class,'isMember']);
+Route::post('/club/join_action',[ClubController::class,'joinAction']);
 Route::get('/club/members/{clubName}',[ClubController::class,'getMembers']);
 Route::get('/club/memberlist/{clubId}',[ClubController::class,'getAllMembers']);
 Route::get('/club/search/{word}',[ClubController::class,'clubSearch']);

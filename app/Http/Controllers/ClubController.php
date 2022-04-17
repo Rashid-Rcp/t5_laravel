@@ -103,6 +103,68 @@ class ClubController extends Controller
         );
     }
 
+    public function isMember(Request $request){
+        $club = $request->input('clubId');
+        $user = $request->input('userId');
+        $member = DB::table('club_members')
+        ->where('club_id','=',$club)
+        ->where('member_id','=',$user)
+        ->first();
+        if($member){
+            return json_encode(
+                [
+                    'status'=>'success',
+                    'member'=>'yes'
+                ]
+                );
+        }
+        else{
+            return json_encode(
+                [
+                    'status'=>'success',
+                    'member'=>'no'
+                ]
+                );
+        }
+    }
+
+    public function joinAction(Request $request){
+        $club = $request->input('clubId');
+        $user = $request->input('userId');
+        $action = $request->input('action');
+
+        if($action === 'join'){
+            $id = DB::table('club_members')
+            ->insertGetId([
+                'club_id'=>$club,
+                'member_id'=>$user,
+                'role'=>'member'
+            ]);
+            if($id){
+                return json_encode(
+                    [
+                        'status' =>'success',
+                        'id'=>$id
+                    ]
+                    );
+            }
+        }
+        else{
+            $id = DB::table('club_members')
+            ->where('club_id', '=',$club)
+            ->where('member_id' ,'=' , $user)
+            ->delete();
+            if($id){
+                return json_encode(
+                    [
+                        'status' =>'success',
+                        'id'=>$id
+                    ]
+                    );
+            }
+        }
+    }
+
     public function getMembers($clubName){
         $clubId = DB::table('club')
         ->where('name',$clubName)
